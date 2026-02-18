@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Item, PlacedItem } from '@/types';
 import { DESIGN } from '@/config/design-tokens';
+import { SLOT_SIZE_PX } from '@/config/constants';
 import { useInventoryStore } from '@/stores/inventory-store';
 import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
@@ -19,21 +20,14 @@ export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps
     ({ item, isDragging, style, className, ...props }, ref) => {
         const computedStyle = {
             ...style,
-            // Type-specific color var for CSS
             '--item-color':
                 item.type === 'resource' ? DESIGN.colors.accent.green :
                     item.type === 'buff' ? DESIGN.colors.state.rare :
                         item.type === 'parasite' ? DESIGN.colors.state.danger :
                             DESIGN.colors.bg.surface,
-
             zIndex: isDragging ? 100 : 10,
             cursor: isDragging ? 'grabbing' : 'grab',
         } as React.CSSProperties;
-
-        const Component = isDragging ? 'div' : motion.div;
-        // Optimization: motion.div for animations, simple div for dragging performance if needed
-        // Actually framer motion handles layout animations well.
-        // Let's use motion.div always but pass props carefully.
 
         return (
             <motion.div
@@ -46,7 +40,6 @@ export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps
                 className={`item-module item-type-${item.type} ${className || ''}`}
                 {...props}
             >
-                {/* Visual Content based on type */}
                 {item.type === 'resource' && (
                     <div className="item-content-resource">
                         <div className="item-fill" />
@@ -54,12 +47,12 @@ export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps
                     </div>
                 )}
 
-                <div className="absolute inset-2 flex flex-col justify-center items-center pointer-events-none">
-                    <span className="text-[10px] font-bold tracking-tight text-white/80 drop-shadow-md text-center leading-tight">
+                <div className="absolute inset-1 sm:inset-2 flex flex-col justify-center items-center pointer-events-none">
+                    <span className="text-[8px] sm:text-[10px] font-bold tracking-tight text-white/80 drop-shadow-md text-center leading-tight">
                         {item.name.toUpperCase()}
                     </span>
                     {item.stackable && (
-                        <span className="mt-1 text-[9px] text-white/50 bg-black/40 px-1 rounded">
+                        <span className="mt-0.5 text-[7px] sm:text-[9px] text-white/50 bg-black/40 px-1 rounded">
                             x1
                         </span>
                     )}
@@ -74,14 +67,16 @@ ItemModuleVisual.displayName = 'ItemModuleVisual';
 
 interface ItemModuleProps {
     placedItem?: PlacedItem;
-    item?: Item; // For sidebar
+    item?: Item;
     isSidebar?: boolean;
+    slotSize?: number;
 }
 
-export function ItemModule({ placedItem, item: itemProp, isSidebar }: ItemModuleProps) {
+export function ItemModule({ placedItem, item: itemProp, isSidebar, slotSize }: ItemModuleProps) {
     const item = placedItem?.item || itemProp!;
     const x = placedItem?.x ?? 0;
     const y = placedItem?.y ?? 0;
+    const size = slotSize ?? SLOT_SIZE_PX;
     const { consume } = useInventoryStore();
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -96,14 +91,13 @@ export function ItemModule({ placedItem, item: itemProp, isSidebar }: ItemModule
     };
 
     const style = {
-        // Grid positioning (only if not sidebar)
         ...(isSidebar ? {} : {
-            left: x * DESIGN.layout.slotSize,
-            top: y * DESIGN.layout.slotSize,
+            left: x * size,
+            top: y * size,
             position: 'absolute',
         }),
-        width: item.width * DESIGN.layout.slotSize,
-        height: item.height * DESIGN.layout.slotSize,
+        width: item.width * size,
+        height: item.height * size,
         transform: CSS.Translate.toString(transform),
     } as React.CSSProperties;
 
