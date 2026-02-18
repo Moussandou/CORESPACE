@@ -1,81 +1,121 @@
+import { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Item, PlacedItem } from '@/types';
 import { DESIGN } from '@/config/design-tokens';
-import { CSS } from '@dnd-kit/utilities';
 import { useInventoryStore } from '@/stores/inventory-store';
+import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
 import './items.css';
 
-interface ItemModuleProps {
-    placedItem: PlacedItem;
+// --- Visual Component (Presentation) ---
+
+interface ItemModuleVisualProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd'> {
+    item: Item;
+    isDragging?: boolean;
+    style?: React.CSSProperties;
 }
 
-export function ItemModule({ placedItem }: ItemModuleProps) {
-    const { item, x, y } = placedItem;
+export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps>(
+    ({ item, isDragging, style, className, ...props }, ref) => {
+        const computedStyle = {
+            ...style,
+            // Type-specific color var for CSS
+            '--item-color':
+                item.type === 'resource' ? DESIGN.colors.accent.green :
+                    item.type === 'buff' ? DESIGN.colors.state.rare :
+                        item.type === 'parasite' ? DESIGN.colors.state.danger :
+                            DESIGN.colors.bg.surface,
+
+            zIndex: isDragging ? 100 : 10,
+            cursor: isDragging ? 'grabbing' : 'grab',
+        } as React.CSSProperties;
+
+        const Component = isDragging ? 'div' : motion.div;
+        // Optimization: motion.div for animations, simple div for dragging performance if needed
+        // Actually framer motion handles layout animations well.
+        // Let's use motion.div always but pass props carefully.
+
+        return (
+            <motion.div
+                ref={ref}
+                style={computedStyle}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: isDragging ? 0.8 : 1, scale: isDragging ? 1.05 : 1 }}
+                exit={{ opacity: 0, scale: 0.5, filter: 'blur(4px)' }}
+                transition={{ duration: 0.2 }}
+                className={`item-module item-type-${item.type} ${className || ''}`}
+                {...props}
+            >
+                {/* Visual Content based on type */}
+                {item.type === 'resource' && (
+                    <div className="item-content-resource">
+                        <div className="item-fill" />
+                        <div className="item-glass-glare" />
+                    </div>
+                )}
+
+                <div className="absolute inset-2 flex flex-col justify-center items-center pointer-events-none">
+                    <span className="text-[10px] font-bold tracking-tight text-white/80 drop-shadow-md text-center leading-tight">
+                        {item.name.toUpperCase()}
+                    </span>
+                    {item.stackable && (
+                        <span className="mt-1 text-[9px] text-white/50 bg-black/40 px-1 rounded">
+                            x1
+                        </span>
+                    )}
+                </div>
+            </motion.div>
+        );
+    }
+);
+ItemModuleVisual.displayName = 'ItemModuleVisual';
+
+// --- Container Component (Logic) ---
+
+interface ItemModuleProps {
+    placedItem?: PlacedItem;
+    item?: Item; // For sidebar
+    isSidebar?: boolean;
+}
+
+export function ItemModule({ placedItem, item: itemProp, isSidebar }: ItemModuleProps) {
+    const item = placedItem?.item || itemProp!;
+    const x = placedItem?.x ?? 0;
+    const y = placedItem?.y ?? 0;
     const { consume } = useInventoryStore();
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: item.id,
-        data: { item, fromX: x, fromY: y },
+        id: isSidebar ? `new-${item.id}` : item.id,
+        data: { item, fromX: x, fromY: y, isNew: isSidebar },
     });
 
     const handleDoubleClick = (e: React.MouseEvent) => {
+        if (isSidebar) return;
         e.stopPropagation();
         consume(item.id);
     };
 
     const style = {
-        // Grid positioning
-        left: x * DESIGN.layout.slotSize,
-        top: y * DESIGN.layout.slotSize,
+        // Grid positioning (only if not sidebar)
+        ...(isSidebar ? {} : {
+            left: x * DESIGN.layout.slotSize,
+            top: y * DESIGN.layout.slotSize,
+            position: 'absolute',
+        }),
         width: item.width * DESIGN.layout.slotSize,
         height: item.height * DESIGN.layout.slotSize,
-
-        // Drag transform priority
         transform: CSS.Translate.toString(transform),
-
-        // Type-specific color var for CSS
-        '--item-color':
-            item.type === 'resource' ? DESIGN.colors.accent.green :
-                item.type === 'buff' ? DESIGN.colors.state.rare :
-                    item.type === 'parasite' ? DESIGN.colors.state.danger :
-                        DESIGN.colors.bg.surface,
-
-        zIndex: isDragging ? 100 : 10,
-        cursor: isDragging ? 'grabbing' : 'grab',
     } as React.CSSProperties;
 
     return (
-        <motion.div
+        <ItemModuleVisual
             ref={setNodeRef}
+            item={item}
+            isDragging={isDragging}
             style={style}
             onDoubleClick={handleDoubleClick}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: isDragging ? 0.8 : 1, scale: isDragging ? 1.05 : 1 }}
-            exit={{ opacity: 0, scale: 0.5, filter: 'blur(4px)' }}
-            transition={{ duration: 0.2 }}
             {...listeners}
             {...attributes}
-            className={`item-module item-type-${item.type}`}
-        >
-            {/* Visual Content based on type */}
-            {item.type === 'resource' && (
-                <div className="item-content-resource">
-                    <div className="item-fill" />
-                    <div className="item-glass-glare" />
-                </div>
-            )}
-
-            <div className="absolute inset-2 flex flex-col justify-center items-center pointer-events-none">
-                <span className="text-[10px] font-bold tracking-tight text-white/80 drop-shadow-md text-center leading-tight">
-                    {item.name.toUpperCase()}
-                </span>
-                {item.stackable && (
-                    <span className="mt-1 text-[9px] text-white/50 bg-black/40 px-1 rounded">
-                        x1
-                    </span>
-                )}
-            </div>
-        </motion.div>
+        />
     );
 }
