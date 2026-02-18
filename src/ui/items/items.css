@@ -1,0 +1,117 @@
+/* Item Styles - Resident Evil / Briefcase Aesthetic */
+
+/* Base Item - Physical Object */
+.item-module {
+    position: absolute;
+    /* Inset shadow for thickness */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+        0 2px 5px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.1s;
+    z-index: 10;
+    cursor: grab;
+    user-select: none;
+}
+
+.item-module:active {
+    cursor: grabbing;
+    z-index: 50;
+    transform: scale(1.02);
+    box-shadow:
+        0 10px 20px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* --- Types --- */
+
+/* Task: Data Cartridge / HDD */
+.item-type-task {
+    background: linear-gradient(180deg, #2a303e 0%, #1a1f29 100%);
+    border: 1px solid #3f4756;
+}
+
+.item-type-task::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: 4px;
+    background: repeating-linear-gradient(0deg,
+            rgba(0, 0, 0, 0.3) 0px,
+            rgba(0, 0, 0, 0.3) 2px,
+            transparent 2px,
+            transparent 4px);
+}
+
+/* Resource: Vial / Canister / Battery */
+.item-type-resource {
+    background: #151922;
+    border: 1px solid #333;
+}
+
+.item-content-resource {
+    position: absolute;
+    inset: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
+}
+
+/* Liquid / Energy fill */
+.item-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: var(--item-color, #fff);
+    box-shadow: 0 0 10px var(--item-color);
+    opacity: 0.8;
+}
+
+.item-glass-glare {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.1) 0%, transparent 40%, rgba(255, 255, 255, 0.05) 100%);
+    pointer-events: none;
+}
+
+/* Buff: Chip / Foil */
+.item-type-buff {
+    background: linear-gradient(135deg, #2d2a1e 0%, #1a1810 100%);
+    border: 1px solid #5c4d26;
+    box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.05);
+}
+
+.item-type-buff::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1px dashed rgba(255, 215, 0, 0.3);
+}
+
+/* Parasite: Corrupted / Rust */
+.item-type-parasite {
+    background: repeating-linear-gradient(45deg,
+            #2a1a1a,
+            #2a1a1a 10px,
+            #201010 10px,
+            #201010 20px);
+    border: 1px solid #5c2626;
+    filter: contrast(1.2) sepia(0.2);
+}
+
+.item-type-parasite::after {
+    content: '!';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    color: #ef4444;
+    font-family: monospace;
+    font-weight: bold;
+    opacity: 0.5;
+}
