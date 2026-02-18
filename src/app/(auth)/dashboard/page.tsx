@@ -21,6 +21,7 @@ import { getOccupiedCells } from '@/domain/grid';
 import { pixelToGrid } from '@/utils/grid-math';
 import { useResponsiveSlotSize } from '@/utils/use-responsive';
 import { play } from '@/infra/audio/sound-engine';
+import { ToastContainer } from '@/ui/feedback/ToastContainer';
 import type { Item } from '@/types';
 
 const dropAnimation = {
@@ -149,6 +150,7 @@ export default function DashboardPage() {
                         />
                     ) : null}
                 </DragOverlay>
+                <ToastContainer />
             </main>
         </DndContext>
     );

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserStats, ItemEffect } from '@/types';
-import { XP_THRESHOLDS } from '@/config/constants';
+import { computeLevel } from '@/domain/progression';
+import { useToastStore } from '@/stores/toast-store';
+import { play } from '@/infra/audio/sound-engine';
 
 interface UserState {
     stats: UserStats;
 
-    // Actions
     addXp: (amount: number) => void;
     modifyEnergy: (amount: number) => void;
     modifyFocus: (amount: number) => void;
@@ -30,9 +31,19 @@ export const useUserStore = create<UserState>()(
             addXp: (amount) => {
                 const { stats } = get();
                 const newXp = stats.xp + amount;
-                // Simple level up logic (CDC §8)
-                // logic here...
-                set({ stats: { ...stats, xp: newXp } });
+                const oldLevel = stats.level;
+                const newLevel = computeLevel(newXp);
+
+                set({ stats: { ...stats, xp: newXp, level: newLevel } });
+
+                if (newLevel > oldLevel) {
+                    play('open-inventory'); // Reuse as level-up fanfare
+                    useToastStore.getState().push({
+                        message: `Niveau ${newLevel} atteint !`,
+                        type: 'levelup',
+                        duration: 5000,
+                    });
+                }
             },
 
             modifyEnergy: (amount) => {
