@@ -7,7 +7,7 @@ export function HUD() {
     const { stats } = useUserStore();
 
     return (
-        <div className="absolute top-3 left-3 sm:top-6 sm:left-6 z-50 flex flex-col gap-3 sm:gap-4 pointer-events-none select-none font-mono">
+        <div className="absolute top-3 right-3 sm:top-6 sm:right-6 z-50 flex flex-col gap-3 sm:gap-4 pointer-events-none select-none font-mono items-end">
             {/* Level & XP */}
             <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-9 h-9 sm:w-12 sm:h-12 border border-white/20 bg-black/50 backdrop-blur rounded flex items-center justify-center font-bold text-base sm:text-xl text-white shadow-lg">
