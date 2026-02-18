@@ -5,6 +5,7 @@ import { createEmptyGrid, canPlace, placeItem, removeItem } from '@/domain/grid'
 import { canConsume, getConsumptionEffect } from '@/domain/consumption';
 import { canFuse } from '@/domain/fusion';
 import { useUserStore } from '@/stores/user-store';
+import { play } from '@/infra/audio/sound-engine';
 
 interface InventoryState {
     mode: GridMode;
@@ -37,13 +38,17 @@ export const useInventoryStore = create<InventoryState>()(
                 const { grid, placedItems } = get();
                 const gridCopy = grid.map((row) => row.map((cell) => ({ ...cell })));
 
-                if (!canPlace(gridCopy, item, x, y)) return false;
+                if (!canPlace(gridCopy, item, x, y)) {
+                    play('error');
+                    return false;
+                }
 
                 placeItem(gridCopy, item, x, y);
                 set({
                     grid: gridCopy,
                     placedItems: [...placedItems, { item, x, y }],
                 });
+                play('drop');
                 return true;
             },
 
@@ -109,8 +114,8 @@ export const useInventoryStore = create<InventoryState>()(
                         ]
                     });
 
-                    // Award XP for fusion
-                    useUserStore.getState().addXp(15); // Constant for fusion
+                    useUserStore.getState().addXp(15);
+                    play('fusion');
                     return true;
                 }
 
@@ -125,6 +130,7 @@ export const useInventoryStore = create<InventoryState>()(
                         ]
                     });
                     useUserStore.getState().addXp(15);
+                    play('fusion');
                     return true;
                 }
 
@@ -143,8 +149,8 @@ export const useInventoryStore = create<InventoryState>()(
                     useUserStore.getState().applyEffect(effect);
                 }
 
-                // Remove from inventory
                 get().remove(itemId);
+                play('consume');
             },
 
             populateDebugItems: (items) => {

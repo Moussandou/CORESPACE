@@ -20,6 +20,7 @@ import { useInventoryStore } from '@/stores/inventory-store';
 import { getOccupiedCells } from '@/domain/grid';
 import { pixelToGrid } from '@/utils/grid-math';
 import { useResponsiveSlotSize } from '@/utils/use-responsive';
+import { play } from '@/infra/audio/sound-engine';
 import type { Item } from '@/types';
 
 const dropAnimation = {
@@ -48,6 +49,7 @@ export default function DashboardPage() {
     function handleDragStart(event: DragStartEvent) {
         if (event.active.data.current?.item) {
             setActiveItem(event.active.data.current.item);
+            play('drag');
         }
         // Close sidebar on mobile when starting a drag
         setSidebarOpen(false);
