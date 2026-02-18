@@ -5,6 +5,7 @@ import { createEmptyGrid, canPlace, placeItem, removeItem } from '@/domain/grid'
 import { canConsume, getConsumptionEffect } from '@/domain/consumption';
 import { canFuse } from '@/domain/fusion';
 import { useUserStore } from '@/stores/user-store';
+import { useActivityStore } from '@/stores/activity-store';
 import { play } from '@/infra/audio/sound-engine';
 
 interface InventoryState {
@@ -115,6 +116,8 @@ export const useInventoryStore = create<InventoryState>()(
                     });
 
                     useUserStore.getState().addXp(15);
+                    useActivityStore.getState().trackFusion();
+                    useActivityStore.getState().trackXp(15);
                     play('fusion');
                     return true;
                 }
@@ -130,6 +133,8 @@ export const useInventoryStore = create<InventoryState>()(
                         ]
                     });
                     useUserStore.getState().addXp(15);
+                    useActivityStore.getState().trackFusion();
+                    useActivityStore.getState().trackXp(15);
                     play('fusion');
                     return true;
                 }
@@ -150,6 +155,7 @@ export const useInventoryStore = create<InventoryState>()(
                 }
 
                 get().remove(itemId);
+                useActivityStore.getState().trackConsume();
                 play('consume');
             },
 
