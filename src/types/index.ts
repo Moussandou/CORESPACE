@@ -24,10 +24,13 @@ export interface Item {
     stackable: boolean;
     craftable: boolean;
     icon?: string;
+    /** Energy cost to place this item on the grid (tasks only). */
+    energyCost?: number;
 }
 
 /** An item placed on the grid at a specific position. */
 export interface PlacedItem {
+    id: string; // Unique instance ID
     item: Item;
     x: number;
     y: number;

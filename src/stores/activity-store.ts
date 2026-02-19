@@ -19,6 +19,7 @@ interface ActivityState {
     trackXp: (amount: number) => void;
     getStreak: () => number;
     getWeekHistory: () => DailyRecord[];
+    reset: () => void;
 }
 
 function todayKey(): string {
@@ -99,11 +100,17 @@ export const useActivityStore = create<ActivityState>()(
                 }
                 return days;
             },
+
+            reset: () => {
+                set({
+                    history: [],
+                    current: { date: todayKey(), tasksCompleted: 0, fusionsDone: 0, itemsConsumed: 0, xpEarned: 0 }
+                });
+            },
         }),
         { name: 'corespace-activity-storage' }
     )
 );
-
 /** Replace or append the current day's record in history. Keep last 30 days. */
 function mergeHistory(history: DailyRecord[], current: DailyRecord): DailyRecord[] {
     const filtered = history.filter((r) => r.date !== current.date);

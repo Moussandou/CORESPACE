@@ -13,6 +13,7 @@ export const DESIGN = {
         accent: {
             green: '#4ade80',            // Vert laser (sélection)
             amber: '#fbbf24',            // Attention
+            blue: '#3b82f6',             // Tasks / XP
         },
         grid: {
             line: 'rgba(255, 255, 255, 0.08)', // Lignes très fines

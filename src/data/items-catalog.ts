@@ -16,6 +16,7 @@ export const ITEMS_CATALOG: Item[] = [
         effect: { xp: 20, description: 'Complete a coding session.' },
         stackable: false,
         craftable: false,
+        energyCost: 20,
     },
     {
         id: 'task-study',
@@ -27,6 +28,7 @@ export const ITEMS_CATALOG: Item[] = [
         effect: { xp: 15, description: 'Study session.' },
         stackable: false,
         craftable: false,
+        energyCost: 15,
     },
     {
         id: 'task-sport',
@@ -38,6 +40,7 @@ export const ITEMS_CATALOG: Item[] = [
         effect: { xp: 15, energy: 10, description: 'Physical exercise.' },
         stackable: false,
         craftable: false,
+        energyCost: 10,
     },
     {
         id: 'task-chores',
@@ -49,6 +52,7 @@ export const ITEMS_CATALOG: Item[] = [
         effect: { xp: 5, description: 'Household chores.' },
         stackable: false,
         craftable: false,
+        energyCost: 5,
     },
     {
         id: 'task-meeting',
@@ -60,6 +64,7 @@ export const ITEMS_CATALOG: Item[] = [
         effect: { xp: 10, description: 'Attend a meeting.' },
         stackable: false,
         craftable: false,
+        energyCost: 10,
     },
 
     // -- Resources --

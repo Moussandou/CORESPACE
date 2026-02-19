@@ -35,25 +35,26 @@ export function canPlace(
     return true;
 }
 
-/** Place an item on the grid. Mutates in place for performance; clone before calling. */
+/** Place an item on the grid. Mutates in place. */
 export function placeItem(
     grid: GridCell[][],
     item: Item,
     x: number,
     y: number,
+    instanceId: string,
 ): void {
     for (let dy = 0; dy < item.height; dy++) {
         for (let dx = 0; dx < item.width; dx++) {
-            grid[y + dy][x + dx] = { occupied: true, itemId: item.id };
+            grid[y + dy][x + dx] = { occupied: true, itemId: instanceId };
         }
     }
 }
 
-/** Remove an item from the grid by id. */
-export function removeItem(grid: GridCell[][], itemId: string): void {
+/** Remove an item from the grid by instanceId. */
+export function removeItem(grid: GridCell[][], instanceId: string): void {
     for (let row = 0; row < grid.length; row++) {
         for (let col = 0; col < grid[row].length; col++) {
-            if (grid[row][col].itemId === itemId) {
+            if (grid[row][col].itemId === instanceId) {
                 grid[row][col] = { occupied: false, itemId: null };
             }
         }
@@ -73,4 +74,25 @@ export function getOccupiedCells(
         }
     }
     return cells;
+}
+
+/** 
+ * Try to find a valid position for an item on the grid.
+ * Scans row by row. Returns coordinates or null if no space.
+ */
+export function findEmptyPosition(
+    grid: GridCell[][],
+    item: Item
+): { x: number; y: number } | null {
+    const rows = grid.length;
+    const cols = grid[0].length;
+
+    for (let y = 0; y <= rows - item.height; y++) {
+        for (let x = 0; x <= cols - item.width; x++) {
+            if (canPlace(grid, item, x, y)) {
+                return { x, y };
+            }
+        }
+    }
+    return null;
 }

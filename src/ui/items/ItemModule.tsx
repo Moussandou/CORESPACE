@@ -1,3 +1,5 @@
+'use client';
+
 import { forwardRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { Item, PlacedItem } from '@/types';
@@ -5,26 +7,28 @@ import { DESIGN } from '@/config/design-tokens';
 import { SLOT_SIZE_PX } from '@/config/constants';
 import { useInventoryStore } from '@/stores/inventory-store';
 import { CSS } from '@dnd-kit/utilities';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import './items.css';
 
 // --- Visual Component (Presentation) ---
 
-interface ItemModuleVisualProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd'> {
+interface ItemModuleVisualProps extends HTMLMotionProps<"div"> {
     item: Item;
     isDragging?: boolean;
     style?: React.CSSProperties;
+    slotSize?: number;
 }
 
 export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps>(
-    ({ item, isDragging, style, className, ...props }, ref) => {
+    ({ item, isDragging, style, className, slotSize, ...props }, ref) => {
         const computedStyle = {
             ...style,
             '--item-color':
                 item.type === 'resource' ? DESIGN.colors.accent.green :
                     item.type === 'buff' ? DESIGN.colors.state.rare :
                         item.type === 'parasite' ? DESIGN.colors.state.danger :
-                            DESIGN.colors.bg.surface,
+                            item.type === 'task' ? DESIGN.colors.accent.blue :
+                                DESIGN.colors.bg.surface,
             zIndex: isDragging ? 100 : 10,
             cursor: isDragging ? 'grabbing' : 'grab',
         } as React.CSSProperties;
@@ -40,21 +44,20 @@ export const ItemModuleVisual = forwardRef<HTMLDivElement, ItemModuleVisualProps
                 className={`item-module item-type-${item.type} ${className || ''}`}
                 {...props}
             >
+                {/* Type-specific backgrounds */}
                 {item.type === 'resource' && (
-                    <div className="item-content-resource">
-                        <div className="item-fill" />
-                        <div className="item-glass-glare" />
-                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                )}
+                {item.type === 'buff' && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-purple-500/20 to-transparent pointer-events-none" />
                 )}
 
-                <div className="absolute inset-1 sm:inset-2 flex flex-col justify-center items-center pointer-events-none">
-                    <span className="text-[8px] sm:text-[10px] font-bold tracking-tight text-white/80 drop-shadow-md text-center leading-tight">
-                        {item.name.toUpperCase()}
+                <div className="absolute inset-1 sm:inset-2 flex flex-col justify-center items-center pointer-events-none z-20">
+                    <span className="text-[8px] sm:text-[10px] font-bold tracking-tight text-white/90 drop-shadow-md text-center leading-tight">
+                        {item.name}
                     </span>
-                    {item.stackable && (
-                        <span className="mt-0.5 text-[7px] sm:text-[9px] text-white/50 bg-black/40 px-1 rounded">
-                            x1
-                        </span>
+                    {item.energyCost && (
+                        <span className="mt-0.5 text-[7px] text-blue-200/80">-{item.energyCost}E</span>
                     )}
                 </div>
             </motion.div>
@@ -80,7 +83,7 @@ export function ItemModule({ placedItem, item: itemProp, isSidebar, slotSize }: 
     const { consume } = useInventoryStore();
 
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-        id: isSidebar ? `new-${item.id}` : item.id,
+        id: isSidebar ? `new-${item.id}` : placedItem!.id,
         data: { item, fromX: x, fromY: y, isNew: isSidebar },
     });
 
@@ -90,12 +93,19 @@ export function ItemModule({ placedItem, item: itemProp, isSidebar, slotSize }: 
         consume(item.id);
     };
 
+    // Sidebar items shouldn't have absolute positioning here, handled by parent
+    if (isSidebar) {
+        return (
+            <div ref={setNodeRef} {...listeners} {...attributes}>
+                <ItemModuleVisual item={item} slotSize={size} />
+            </div>
+        )
+    }
+
     const style = {
-        ...(isSidebar ? {} : {
-            left: x * size,
-            top: y * size,
-            position: 'absolute',
-        }),
+        left: x * size,
+        top: y * size,
+        position: 'absolute',
         width: item.width * size,
         height: item.height * size,
         transform: CSS.Translate.toString(transform),
@@ -107,6 +117,7 @@ export function ItemModule({ placedItem, item: itemProp, isSidebar, slotSize }: 
             item={item}
             isDragging={isDragging}
             style={style}
+            slotSize={size}
             onDoubleClick={handleDoubleClick}
             {...listeners}
             {...attributes}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     DndContext,
     DragOverlay,
@@ -17,6 +17,9 @@ import { HUD } from '@/ui/hud/HUD';
 import { ModuleSidebar } from '@/ui/sidebar/ModuleSidebar';
 import { ItemModuleVisual } from '@/ui/items/ItemModule';
 import { useInventoryStore } from '@/stores/inventory-store';
+import { useDayCycleStore } from '@/stores/day-cycle-store';
+import { DayControls } from '@/ui/hud/DayControls';
+import { DayResolveModal } from '@/ui/feedback/DayResolveModal';
 import { getOccupiedCells } from '@/domain/grid';
 import { pixelToGrid } from '@/utils/grid-math';
 import { useResponsiveSlotSize } from '@/utils/use-responsive';
@@ -34,9 +37,22 @@ const dropAnimation = {
 
 export default function DashboardPage() {
     const { grid, placedItems, move, place, fuse } = useInventoryStore();
+    const { tick, phase } = useDayCycleStore();
     const [activeItem, setActiveItem] = useState<Item | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const slotSize = useResponsiveSlotSize();
+
+    // Game Loop: Tick every 2.5 seconds = 30 minutes in game
+    // => 1 hour = 5 seconds
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (phase === 'active') {
+            interval = setInterval(() => {
+                tick(0.5); // +30 mins
+            }, 2500);
+        }
+        return () => clearInterval(interval);
+    }, [phase, tick]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -52,7 +68,6 @@ export default function DashboardPage() {
             setActiveItem(event.active.data.current.item);
             play('drag');
         }
-        // Close sidebar on mobile when starting a drag
         setSidebarOpen(false);
     }
 
@@ -66,11 +81,14 @@ export default function DashboardPage() {
         const isNew = active.data.current?.isNew;
         if (!item) return;
 
+        // Prevent placing tasks if not in PLANNING phase?
+        // Actually, user can place tasks during active phase too, but maybe with penalty or cost?
+        // For now, let's allow it continuously.
+
         const activeRect = active.rect.current.translated;
         const overRect = over.rect;
         if (!activeRect || !overRect) return;
 
-        // Offset for internal grid padding (handle + padding)
         const gridPadding = slotSize < 56 ? 6 : 12;
         const handleHeight = slotSize < 56 ? 20 : 24;
         const gridOffsetX = gridPadding;
@@ -79,16 +97,20 @@ export default function DashboardPage() {
         const relativeX = activeRect.left - overRect.left - gridOffsetX;
         const relativeY = activeRect.top - overRect.top - gridOffsetY;
 
-        const { col, row } = pixelToGrid(relativeX, relativeY);
+        const { col, row } = pixelToGrid(relativeX, relativeY, slotSize);
+
+        console.log('[Dashboard] DragEnd:', { activeId: active.id, overId: over?.id, isNew, item });
 
         if (isNew) {
-            place(item, col, row);
+            console.log('[Dashboard] Placing NEW item:', item.name, 'at', col, row);
+            const success = place(item, col, row);
+            if (success) play('drop');
+            else play('error');
             return;
         }
 
-        // Existing item: check fusion then move
-        const placedItem = placedItems.find((p) => p.item.id === item.id);
-        if (!placedItem) return;
+        // active.id is now the unique instanceId
+        const instanceId = String(active.id);
 
         const occupiedCells = getOccupiedCells(item, col, row);
         let fused = false;
@@ -96,8 +118,9 @@ export default function DashboardPage() {
         for (const cell of occupiedCells) {
             if (cell.row >= 0 && cell.row < grid.length && cell.col >= 0 && cell.col < grid[0].length) {
                 const gridCell = grid[cell.row][cell.col];
-                if (gridCell.occupied && gridCell.itemId && gridCell.itemId !== item.id) {
-                    if (fuse(item.id, gridCell.itemId)) {
+                // Check against instanceId, not catalog ID
+                if (gridCell.occupied && gridCell.itemId && gridCell.itemId !== instanceId) {
+                    if (fuse(instanceId, gridCell.itemId)) {
                         fused = true;
                         break;
                     }
@@ -106,7 +129,7 @@ export default function DashboardPage() {
         }
 
         if (!fused) {
-            move(item.id, col, row);
+            move(instanceId, col, row);
         }
     }
 
@@ -118,12 +141,13 @@ export default function DashboardPage() {
         >
             <main className="flex min-h-screen min-h-dvh bg-black overflow-hidden relative">
 
-                {/* Ambient Background */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(20,30,40,0.4)_0%,_rgba(0,0,0,1)_80%)]" />
+                {/* Background Texture */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(20,30,40,0.4)_0%,_rgba(0,0,0,1)_80%)] pointer-events-none" />
 
                 <HUD />
+                <DayControls />
+                <DayResolveModal />
 
-                {/* Layout: Sidebar + Grid */}
                 <div className="flex w-full h-dvh relative z-10">
                     <ModuleSidebar
                         isOpen={sidebarOpen}
@@ -131,23 +155,24 @@ export default function DashboardPage() {
                         slotSize={slotSize}
                     />
 
-                    {/* Grid Container (centered) */}
                     <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
                         <InventoryGrid slotSize={slotSize} />
                     </div>
                 </div>
 
-                <DragOverlay dropAnimation={dropAnimation}>
+                <DragOverlay dropAnimation={dropAnimation} zIndex={100}>
                     {activeItem ? (
-                        <ItemModuleVisual
-                            item={activeItem}
-                            isDragging
-                            style={{
-                                cursor: 'grabbing',
-                                width: activeItem.width * slotSize,
-                                height: activeItem.height * slotSize,
-                            }}
-                        />
+                        <div style={{ pointerEvents: 'none' }}>
+                            <ItemModuleVisual
+                                item={activeItem}
+                                isDragging
+                                slotSize={slotSize}
+                                style={{
+                                    width: activeItem.width * slotSize,
+                                    height: activeItem.height * slotSize,
+                                }}
+                            />
+                        </div>
                     ) : null}
                 </DragOverlay>
                 <ToastContainer />

@@ -70,7 +70,11 @@ export function InventoryGrid({ slotSize }: InventoryGridProps) {
 
                         <AnimatePresence>
                             {placedItems.map((placed) => (
-                                <ItemModule key={placed.item.id} placedItem={placed} slotSize={slotSize} />
+                                <ItemModule
+                                    key={placed.id}
+                                    placedItem={placed}
+                                    slotSize={slotSize}
+                                />
                             ))}
                         </AnimatePresence>
                     </div>
